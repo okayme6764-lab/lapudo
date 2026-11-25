@@ -13,3 +13,5 @@ __pycache__/
 *.pre_restore_*
 .base/
 .polydev/
+app.py.bak_*
+templates/index.html.bak_*
