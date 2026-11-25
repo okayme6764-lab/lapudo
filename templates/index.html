@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XAUUSD AI Scalper</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d18;color:#e8edf7;font-family:Arial,sans-serif}
+header{padding:20px;background:#101a2b;border-bottom:1px solid #26334a}
+header h2{margin:0;color:#e6bd64}
+header p{margin:7px 0 0;color:#94a3b8;font-size:13px}
+main{max-width:900px;margin:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#111c2e;border:1px solid #263750;border-radius:13px;padding:17px;margin-bottom:12px}
+.label{font-size:12px;color:#94a3b8}
+.value{font-size:23px;font-weight:bold;margin-top:9px}
+.green{color:#35d39a}
+.gold{color:#e6bd64}
+.red{color:#ef6675}
+.muted{color:#94a3b8;font-size:12px}
+button{border:0;border-radius:9px;padding:14px;font-weight:bold;font-size:14px;cursor:pointer;width:100%}
+.start{background:#18a875;color:white}
+.stop{background:#c44454;color:white}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.status{display:inline-block;padding:6px 10px;border-radius:20px;background:#24344b;color:#e6bd64;font-size:12px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #263750;font-size:13px}
+footer{text-align:center;color:#64748b;font-size:12px;padding:25px}
+@media(max-width:400px){.value{font-size:19px}}
+
+.mt5input{width:100%;padding:13px;margin:7px 0 12px;background:#080d18;color:#e8edf7;border:1px solid #263750;border-radius:8px;font-size:16px}
+.mt5connect{background:#2878d0;color:white;margin-top:8px}
+
+</style>
+</head>
+<body>
+<header>
+<h2>✦ XAUUSD AI SCALPER</h2>
+<p>Automated Gold Trading Terminal</p>
+</header>
+
+<main>
+<div class="card">
+<div class="row"><span>BACKEND STATUS</span><span class="status" id="server">CONNECTING</span></div>
+<div class="row"><span>BOT STATUS</span><strong id="botstatus">STOPPED</strong></div>
+<div class="row"><span>TRADING MODE</span><strong class="gold">PAPER TRADING</strong></div>
+</div>
+
+
+<div class="card" id="mt5panel">
+<h3>MT5 Demo Account Connection</h3>
+<label class="muted" for="mt5broker">Search broker</label>
+<input class="mt5input" id="mt5broker" placeholder="Search broker e.g. EGM Securities" oninput="searchMT5Brokers()">
+<div id="mt5brokerresults" class="muted"></div>
+<label class="muted" for="mt5server">Select MT5 server</label>
+<select class="mt5input" id="mt5server"><option value="">Search and select a server</option></select>
+<label class="muted" for="mt5login">MT5 Account Number</label>
+<input class="mt5input" id="mt5login" inputmode="numeric" autocomplete="username" placeholder="Enter demo account number">
+<label class="muted" for="mt5password">MT5 Password</label>
+<input class="mt5input" id="mt5password" type="password" autocomplete="current-password" placeholder="Enter demo trading password">
+<button class="mt5connect" onclick="connectMT5()">CONNECT MT5 DEMO</button>
+<p class="muted" id="mt5message">Not connected</p>
+<div class="row"><span>MT5 Balance</span><strong id="mt5balance">--</strong></div>
+<div class="row"><span>MT5 Equity</span><strong id="mt5equity">--</strong></div>
+<div class="row"><span>MT5 XAUUSD</span><strong id="mt5price">--</strong></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<div class="label">XAUUSD PRICE</div>
+<div class="value gold" id="price">--</div><div class="muted">Bid: <span id="bid">--</span> · Ask: <span id="ask">--</span></div>
+<div class="muted" id="marketstatus">Live feed not connected</div>
+</div>
+<div class="card">
+<div class="label">LATEST SIGNAL</div>
+<div class="value" id="signal">WAITING</div>
+<div class="muted" id="confidence">BUY: 50% · SELL: 50%</div>
+</div>
+<div class="card">
+<div class="label">ACCOUNT BALANCE</div>
+<div class="value" id="paperbalance">$1,000.00</div>
+<div class="muted">Virtual paper balance</div>
+</div>
+<div class="card">
+<div class="label">OPEN TRADES</div>
+<div class="value" id="opencount">0</div>
+<div class="muted">Simulated open positions</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Bot Controls</h3>
+<div class="buttons">
+<button class="start" onclick="controlBot('start')">▶ START BOT</button>
+<button class="stop" onclick="controlBot('stop')">■ STOP BOT</button>
+</div>
+<p class="muted" id="message">Bot is currently stopped.</p>
+</div>
+
+<div class="card">
+<h3>Trade Information</h3>
+<div class="row"><span>Entry Price</span><strong id="entry">--</strong></div>
+<div class="row"><span>Stop Loss</span><strong id="sl">--</strong></div>
+<div class="row"><span>Take Profit</span><strong id="tp">--</strong></div>
+<div class="row"><span>Lot Size</span><strong id="lotsize">0.01</strong></div>
+<div class="row"><span>Market Trend</span><strong id="trend">UNKNOWN</strong></div>
+</div>
+
+<div class="card">
+<h3>Strategy Analysis</h3>
+<div id="reasons" class="muted">Waiting for analysis.</div>
+<div class="row"><span>Last Analysis</span><strong id="analysis-time">--</strong></div>
+</div>
+
+
+<div class="card">
+<h3>Paper Trading Account</h3>
+<div class="row"><span>Virtual Balance</span><strong id="paperbalance2">$1,000.00</strong></div>
+<div class="row"><span>Closed Trades</span><strong id="closedcount">0</strong></div>
+<div class="row"><span>Winning Trades</span><strong id="wins">0</strong></div>
+<div class="row"><span>Total Profit/Loss</span><strong id="paperpnl">$0.00</strong></div>
+<h3>Open Position</h3>
+<div id="opentrade" class="muted">No open paper trade.</div>
+<h3>Recent Closed Trades</h3>
+<div id="tradehistory" class="muted">No closed trades yet.</div>
+</div>
+
+<div class="card">
+<h3>System Information</h3>
+<div class="row"><span>Trading Engine</span><strong class="green">Installed</strong></div>
+<div class="row"><span>Market Data</span><strong id="feedstatus">Not connected</strong></div>
+<div class="row"><span>Broker Execution</span><strong>Not connected</strong></div>
+<div class="row"><span>Risk Manager</span><strong class="green">Installed</strong></div>
+</div>
+</main>
+
+<footer>XAUUSD AI SCALPER · PAPER MODE · NO LIVE ORDERS</footer>
+
+<script>
+function show(id,value){
+ document.getElementById(id).textContent=value ?? '--';
+}
+
+async function refresh(){
+ try{
+  const r=await fetch('/api/status');
+  if(!r.ok) throw new Error('Backend error');
+  const d=await r.json();
+  const b=d.bot;
+
+  show('server','ONLINE');
+  show('botstatus',b.running?'RUNNING':'STOPPED');
+  show('message',b.message);
+  show('entry',b.entry||'--');
+  show('sl',b.stop_loss||'--');
+  show('tp',b.take_profit||'--');
+
+  if(b.market_data && b.market_data !== 'BiQuote'){
+   show('marketstatus','BiQuote candle data');
+  }
+ }catch(e){
+  show('server','OFFLINE');
+ }
+}
+
+async function refreshMarket(){
+ try{
+  const r=await fetch('/api/live-market');
+  const d=await r.json();
+  if(!r.ok || !d.success) throw new Error(d.error || 'Feed unavailable');
+
+  show('price',Number(d.price).toFixed(2));
+  show('bid',Number(d.bid).toFixed(3));
+  show('ask',Number(d.ask).toFixed(3));
+  show('marketstatus','BiQuote Live · '+d.timestamp);
+  show('feedstatus','BiQuote Connected · '+d.candles+' candles');
+
+  if(d.signal) show('signal',d.signal);
+  if(d.trend) show('trend',d.trend);
+  if(d.buy_confidence !== undefined && d.sell_confidence !== undefined)
+   show('confidence','BUY: '+Number(d.buy_confidence).toFixed(1)+'% · SELL: '+Number(d.sell_confidence).toFixed(1)+'%');
+  if(d.reasons) show('reasons',d.reasons.join(', ') || 'No additional reasons');
+  if(d.analysis_message) show('message',d.analysis_message);
+ }catch(e){
+  show('marketstatus','Feed error: '+e.message);
+  show('feedstatus','Connection error');
+ }
+}
+
+
+async function refreshPaper(){
+ try{
+  const r=await fetch('/api/paper');
+  const d=await r.json();
+  if(!d.success) return;
+  const p=d.paper;
+  show('paperbalance','$'+Number(p.balance).toFixed(2));
+  show('paperbalance2','$'+Number(p.balance).toFixed(2));
+  show('opencount',(p.open_trades || (p.open_trade ? [p.open_trade] : [])).length);
+  show('closedcount',p.total_trades);
+  show('wins',p.wins);
+  show('lotsize',Number(p.lot_size).toFixed(2));
+
+  const pnl=Number(p.total_profit);
+  show('paperpnl',(pnl>=0?'+':'')+'$'+pnl.toFixed(2));
+
+  const trades=p.open_trades || (p.open_trade ? [p.open_trade] : []);
+  if(trades.length){
+   show('opentrade',trades.map((t,i)=>
+    '#'+(i+1)+' '+t.direction+' · Entry '+t.entry+
+    ' · SL '+t.stop_loss+' · TP '+t.take_profit+
+    ' · '+t.lot_size+' lots'
+   ).join(' | '));
+  }else{
+   show('opentrade','No open paper trades.');
+  }
+
+  const history=document.getElementById('tradehistory');
+  history.textContent='';
+  if(!p.history.length){
+   history.textContent='No closed trades yet.';
+  }else{
+   p.history.slice(0,10).forEach(t=>{
+    const row=document.createElement('div');
+    row.className='row';
+    const label=document.createElement('span');
+    label.textContent=t.direction+' · '+t.result;
+    const value=document.createElement('strong');
+    value.textContent=(t.profit_loss>=0?'+':'')+
+      '$'+Number(t.profit_loss).toFixed(2);
+    row.append(label,value);
+    history.appendChild(row);
+   });
+  }
+ }catch(e){}
+}
+
+
+async function refreshQuote(){
+ try{
+  const r=await fetch('/api/live-quote');
+  const d=await r.json();
+  if(!r.ok || !d.success) throw new Error(d.error || 'Quote unavailable');
+  const q=d.quote;
+  show('price',Number(q.price).toFixed(3));
+  show('bid',Number(q.bid).toFixed(3));
+  show('ask',Number(q.ask).toFixed(3));
+  show('marketstatus','BiQuote LIVE · '+q.timestamp);
+ }catch(e){
+  show('marketstatus','BiQuote unavailable · '+e.message);
+ }
+}
+
+
+
+let brokerSearchTimer;
+async function searchMT5Brokers(){
+ clearTimeout(brokerSearchTimer);
+ brokerSearchTimer=setTimeout(async()=>{
+  const query=document.getElementById('mt5broker').value.trim();
+  const results=document.getElementById('mt5brokerresults');
+  const select=document.getElementById('mt5server');
+  if(query.length<2){results.textContent='Type at least 2 characters.';return;}
+  results.textContent='Searching MT5 brokers...';
+  try{
+   const r=await fetch('/api/mt5/brokers?q='+encodeURIComponent(query));
+   const d=await r.json();
+   if(!r.ok || !d.success) throw new Error(d.error||'Search failed');
+   select.innerHTML='<option value="">Choose a server</option>';
+   let count=0;
+   Object.entries(d.brokers || Object.fromEntries(Object.entries(d).filter(([k,v])=>k!=='success' && k!=='error' && Array.isArray(v))) || {}).forEach(([broker,servers])=>{
+    servers.forEach(server=>{
+     const option=document.createElement('option');
+     option.value=server;
+     option.textContent=broker+' — '+server;
+     option.dataset.broker=broker;
+     select.appendChild(option);
+     count++;
+    });
+   });
+   results.textContent=count ? count+' server options found. Select one below.' : 'No matching servers found. Try another broker name.';
+  }catch(e){results.textContent='Broker search error: '+e.message;}
+ },450);
+}
+
+async function connectMT5(){
+ const login=document.getElementById('mt5login').value.trim();
+ const password=document.getElementById('mt5password').value;
+ const msg=document.getElementById('mt5message');
+ if(!login || !password){msg.textContent='Enter your MT5 login and password.';return;}
+ msg.textContent='Connecting to MetaApi. This may take a few minutes...';
+ try{
+  const r=await fetch('/api/mt5/connect',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({login,password,broker:document.getElementById('mt5broker').value.trim(),server:document.getElementById('mt5server').value})
+  });
+  const d=await r.json();
+  document.getElementById('mt5password').value='';
+  if(!r.ok || !d.success) throw new Error(d.error || 'Connection failed');
+  msg.textContent='MT5 connected successfully.';
+  refreshMT5();
+ }catch(e){msg.textContent='MT5 connection failed: '+e.message;}
+}
+async function refreshMT5(){
+ try{
+  const r=await fetch('/api/mt5/status');
+  const d=await r.json();
+  const m=d.mt5 || {};
+  if(m.connected){
+   const a=m.account || {};
+   document.getElementById('mt5message').textContent='CONNECTED · '+a.login+' · '+a.server;
+   document.getElementById('mt5balance').textContent=a.balance+' '+(a.currency||'');
+   document.getElementById('mt5equity').textContent=a.equity+' '+(a.currency||'');
+   const q=m.quote || {};
+   document.getElementById('mt5price').textContent=q.bid ? q.bid+' / '+q.ask : 'Waiting for XAUUSD quote';
+  }else{
+   document.getElementById('mt5message').textContent=m.message || 'Not connected';
+  }
+ }catch(e){}
+}
+
+async function controlBot(action){
+ try{
+  const r=await fetch('/api/'+action,{method:'POST'});
+  const d=await r.json();
+  show('message',d.bot.message);
+  refresh();
+refreshQuote();
+setInterval(refreshQuote,1000);
+ }catch(e){
+  show('message','Backend connection failed');
+ }
+}
+
+refresh();
+refreshMarket();
+setInterval(refresh,1000);
+setInterval(refreshMarket,1000);                    setInterval(refreshPaper,1000);
+</script>
+</body>
+</html>

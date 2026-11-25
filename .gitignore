@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.backup
+*.bak
+*.before_*
+*.exness_backup_*
+*.pre_restore_*
+.base/
+.polydev/
